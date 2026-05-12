@@ -1320,29 +1320,11 @@ function boot() {
   loginForm.addEventListener("submit", (e) => {
     e.preventDefault();
     hideAuthError();
-    const email = normalizeEmail(loginEmail.value);
-    const password = loginPass.value;
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      showAuthError("请输入有效邮箱地址");
-      return;
-    }
-    if (!password) {
-      showAuthError("请输入密码");
-      return;
-    }
-    const account = findAccountByEmail(email);
-    if (!account) {
-      showAuthError("账号不存在，请先注册");
-      return;
-    }
-    if (account.password !== password) {
-      showAuthError("密码不正确，请重试");
-      return;
-    }
+    const input = loginEmail.value.trim() || "游客";
     const session = {
-      displayName: account.displayName,
-      email,
-      avatarDataUrl: getAvatarForEmail(email) || undefined,
+      displayName: input,
+      email: input,
+      avatarDataUrl: undefined,
     };
     setUser(session);
     setUserChrome(session);
@@ -1354,37 +1336,16 @@ function boot() {
   registerForm.addEventListener("submit", (e) => {
     e.preventDefault();
     hideAuthError();
-    const displayName = regName.value.trim();
-    const email = normalizeEmail(regEmail.value);
-    const p1 = regPass.value;
-    const p2 = regPass2.value;
-    if (!displayName) {
-      showAuthError("请输入昵称");
-      return;
-    }
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      showAuthError("请输入有效邮箱地址");
-      return;
-    }
-    if (p1.length < 4) {
-      showAuthError("密码至少 4 位");
-      return;
-    }
-    if (p1 !== p2) {
-      showAuthError("两次输入的密码不一致");
-      return;
-    }
-    if (findAccountByEmail(email)) {
-      showAuthError("该邮箱已被注册，请直接登录或更换邮箱");
-      return;
-    }
+    const displayName = regName.value.trim() || "新用户";
+    const email = regEmail.value.trim() || "user@example.com";
+    const password = regPass.value || "pass";
     const accounts = getAccounts();
-    accounts.push({ displayName, email, password: p1 });
+    accounts.push({ displayName, email, password });
     saveAccounts(accounts);
     const session = {
       displayName,
       email,
-      avatarDataUrl: getAvatarForEmail(email) || undefined,
+      avatarDataUrl: undefined,
     };
     setUser(session);
     setUserChrome(session);
