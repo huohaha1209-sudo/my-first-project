@@ -14,7 +14,7 @@ const DEFAULT_PLAYLIST = [
     title: "Neon Drift",
     artist: "SoundHelix",
     album: "Demo",
-    src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+    src: "songs/the_mountain-ambient-487008.mp3",
     cover: "https://picsum.photos/seed/neon1/400/400",
     isPreview: false,
   },
@@ -22,7 +22,7 @@ const DEFAULT_PLAYLIST = [
     title: "Pulse Highway",
     artist: "SoundHelix",
     album: "Demo",
-    src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
+    src: "songs/the_mountain-ambient-487008.mp3",
     cover: "https://picsum.photos/seed/neon2/400/400",
     isPreview: false,
   },
@@ -30,7 +30,7 @@ const DEFAULT_PLAYLIST = [
     title: "Midnight Grid",
     artist: "SoundHelix",
     album: "Demo",
-    src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
+    src: "songs/the_mountain-ambient-487008.mp3",
     cover: "https://picsum.photos/seed/neon3/400/400",
     isPreview: false,
   },
@@ -38,7 +38,7 @@ const DEFAULT_PLAYLIST = [
     title: "Synth Horizon",
     artist: "SoundHelix",
     album: "Demo",
-    src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3",
+    src: "songs/the_mountain-ambient-487008.mp3",
     cover: "https://picsum.photos/seed/neon4/400/400",
     isPreview: false,
   },
@@ -46,7 +46,7 @@ const DEFAULT_PLAYLIST = [
     title: "Violet Run",
     artist: "SoundHelix",
     album: "Demo",
-    src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3",
+    src: "songs/the_mountain-ambient-487008.mp3",
     cover: "https://picsum.photos/seed/neon5/400/400",
     isPreview: false,
   },
@@ -54,7 +54,7 @@ const DEFAULT_PLAYLIST = [
     title: "Cyber Mirage",
     artist: "SoundHelix",
     album: "Demo",
-    src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3",
+    src: "songs/the_mountain-ambient-487008.mp3",
     cover: "https://picsum.photos/seed/neon6/400/400",
     isPreview: false,
   },
@@ -430,6 +430,19 @@ function trackId(t) {
   return `${String(t.src)}|${t.title}|${t.artist}`;
 }
 
+function isSupportedAudioSource(src) {
+  const extension = String(src || "").split(".").pop().toLowerCase();
+  const mimeMap = {
+    mp3: "audio/mpeg",
+    aac: "audio/aac",
+    wav: "audio/wav",
+    m4a: "audio/mp4",
+    ogg: "audio/ogg",
+  };
+  const mime = mimeMap[extension];
+  return Boolean(mime && audioEl.canPlayType(mime));
+}
+
 function getFavorites() {
   try {
     const raw = localStorage.getItem(LS_FAV);
@@ -682,6 +695,14 @@ function loadTrack(index, autoplay = true) {
 
   currentIndex = ((index % n) + n) % n;
   const track = activePlaylist[currentIndex];
+
+  if (!isSupportedAudioSource(track.src)) {
+    trackTitle.textContent = "音频格式不受支持";
+    trackArtist.textContent = "请使用 MP3/AAC/WAV/M4A/OGG 格式";
+    showToast("音频格式不受支持", "err");
+    setPlayingState(false);
+    return;
+  }
 
   audioEl.src = track.src;
   coverImage.src = track.cover;
@@ -1161,7 +1182,10 @@ function initPlayer() {
   if (playerInited) return;
   playerInited = true;
 
-  audioEl.volume = Number(volumeSlider.value) || 0.85;
+  audioEl.muted = false;
+  audioEl.volume = Number(volumeSlider.value) || 1;
+  audioEl.muted = false;
+  audioEl.preload = "auto";
 
   updateListTabs();
   renderPlaylist();
@@ -1261,8 +1285,17 @@ function initPlayer() {
   audioEl.addEventListener("pause", () => setPlayingState(false));
   audioEl.addEventListener("ended", () => onTrackEnded());
   audioEl.addEventListener("error", () => {
+    let message = "音频无法播放，链接可能失效或格式不支持";
+    if (audioEl.error) {
+      if (audioEl.error.code === 4) {
+        message = "音频资源无法加载，请检查文件路径、服务器MIME和本地网络";
+      } else if (audioEl.error.code === 3) {
+        message = "音频解码失败，格式可能不受支持";
+      }
+    }
     trackTitle.textContent = "音频无法播放";
-    trackArtist.textContent = "链接可能失效或格式不受支持";
+    trackArtist.textContent = message;
+    showToast(message, "err");
     setPlayingState(false);
   });
 
